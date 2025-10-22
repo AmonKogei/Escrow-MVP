@@ -63,16 +63,32 @@ export async function verifySession(cookieValue: string, secret: string) {
     if (bufExpected.length !== bufSig.length) return null;
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { timingSafeEqual } = require('crypto');
-    if (!timingSafeEqual(bufExpected, bufSig)) return null;
+    if (!timingSafeEqual(bufExpected, bufSig)) {
+      console.debug('verifySession: timingSafeEqual failed', {
+        encoded: encoded.slice(0, 120),
+        providedSig: sig,
+        expectedSig: expected,
+        secretPresent: !!process.env.SESSION_SECRET
+      });
+      return null;
+    }
   } catch (e) {
     // Fallback: constant-time string compare
     let mismatch = 0;
-    if (expected.length !== sig.length) return null;
+    if (expected.length !== sig.length) {
+      console.debug(`verifySession: length mismatch expected=${expected.length} got=${sig.length} secretPresent=${!!process.env.SESSION_SECRET}`);
+      return null;
+    }
     for (let i = 0; i < expected.length; i++) {
       mismatch |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
     }
-    if (mismatch !== 0) return null;
+    if (mismatch !== 0) {
+      console.debug(`verifySession: fallback mismatch expected=${expected.slice(0,8)} got=${sig.slice(0,8)} secretPresent=${!!process.env.SESSION_SECRET}`);
+      return null;
+    }
   }
+  // debug: verification succeeded
+  // console.debug(`verifySession: ok expected=${expected.slice(0,8)} got=${sig.slice(0,8)}`);
   try {
     const parsed = JSON.parse(decodeURIComponent(encoded));
     return parsed;
