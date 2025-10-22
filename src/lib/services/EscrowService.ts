@@ -103,12 +103,12 @@ export class EscrowService {
             
             const amountDecimal = escrow.amount;
 
-            // 2. Update Escrow status to RELEASED
-            await tx.escrow.update({
+            // 2. Update Escrow status to RELEASED and capture the updated record
+            const updatedEscrow = await tx.escrow.update({
                 where: { id: escrowId },
                 data: { status: EscrowStatus.RELEASED }
             });
-            
+
             // 3. Credit Seller's platform balance
             const seller = await tx.user.update({
                 where: { id: escrow.sellerId },
@@ -123,13 +123,13 @@ export class EscrowService {
                     type: TransactionType.ESCROW_RELEASE,
                     status: TransactionStatus.COMPLETED,
                     amount: amountDecimal,
-                    details: { escrowId: escrow.id },
-                    escrowId: escrow.id,
+                    details: { escrowId: updatedEscrow.id },
+                    escrowId: updatedEscrow.id,
                 }
             });
-            await logAudit(tx, buyerId, 'ESCROW_RELEASED', escrow.id, { sellerNewBalance: seller.balance });
+            await logAudit(tx, buyerId, 'ESCROW_RELEASED', updatedEscrow.id, { sellerNewBalance: seller.balance });
 
-            return escrow;
+            return updatedEscrow;
         });
     }
 

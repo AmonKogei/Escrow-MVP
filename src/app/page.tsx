@@ -73,13 +73,19 @@ export default function HomePage() {
                         <div className='space-x-2'>
                           <button 
                             className="text-indigo-600 hover:text-indigo-900 text-xs font-bold"
-                            onClick={() => console.log(`API call: POST /api/admin/escrows/${escrow.id}/resolve {resolution: APPROVE}`)}
+                            onClick={async () => {
+                              await fetch(`/api/escrows/${escrow.id}/resolve`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ resolution: 'APPROVE' }) });
+                              alert('Resolve request sent (APPROVE)');
+                            }}
                           >
                             APPROVE (Seller)
                           </button>
                           <button 
                             className="text-red-600 hover:text-red-900 text-xs font-bold"
-                            onClick={() => console.log(`API call: POST /api/admin/escrows/${escrow.id}/resolve {resolution: REJECT}`)}
+                            onClick={async () => {
+                              await fetch(`/api/escrows/${escrow.id}/resolve`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ resolution: 'REJECT' }) });
+                              alert('Resolve request sent (REJECT)');
+                            }}
                           >
                             REJECT (Buyer)
                           </button>

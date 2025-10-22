@@ -2,11 +2,11 @@
 import { EscrowService } from '../../../../../lib/services/EscrowService';
 import { authenticateUser } from '../../../../../lib/utils';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, context: any) {
     try {
         // Auth Stub: Check if the user is authorized (buyer or seller of the escrow)
         const { id: userId } = await authenticateUser(request, 'ANY');
-        const escrowId = params.id;
+        const escrowId = context?.params?.id;
         const { reason } = await request.json();
 
         if (!reason) {

@@ -2,6 +2,7 @@
 export const runtime = 'nodejs';
 import prisma from '../../../../lib/prisma';
 import * as bcrypt from 'bcryptjs';
+import { signSession } from '../../../../lib/session';
 import { UserRole } from '@prisma/client';
 
 export async function POST(request: Request) {
@@ -39,12 +40,19 @@ export async function POST(request: Request) {
             });
         }
 
+    // Create a signed server-side session cookie
+    const secret = process.env.SESSION_SECRET || '';
+    const signed = await signSession({ id: user.id, role: user.role, email: user.email }, secret);
+    const isProd = process.env.NODE_ENV === 'production';
+    const secureFlag = isProd ? 'Secure; ' : '';
+    const cookie = `escrow_user=${signed}; Path=/; ${secureFlag}HttpOnly; SameSite=Lax; Max-Age=${60 * 60 /* 1 hour */}`;
+
         return new Response(JSON.stringify({
             message: 'Login successful',
             user: { id: user.id, email: user.email, role: user.role },
         }), {
             status: 200,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookie },
         });
     } catch (error: any) {
         console.error('Login error:', error);

@@ -2,6 +2,7 @@
 // src/app/admin/login/page.tsx
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -18,11 +19,10 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role: 'admin' }),
+        body: JSON.stringify({ email, password, role: 'ADMIN' }),
+        // credentials not required for cookie set by same-origin API route, but keeping default
       });
       if (res.ok) {
-        // Stub: store session flag in localStorage
-        localStorage.setItem('admin_session', 'true');
         router.push('/admin');
       } else {
         const data = await res.json().catch(() => ({ message: 'Login failed' }));
@@ -52,6 +52,46 @@ export default function AdminLoginPage() {
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="mt-4">
+          <div className="flex items-center space-x-4">
+            <button
+              className="text-sm text-blue-600"
+              onClick={async () => {
+                try {
+                  const r = await fetch('/api/auth/dev-login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email: 'admin@escrow.co.ke', role: 'ADMIN' }) });
+                  const j = await r.json().catch(() => ({}));
+                  if (r.ok) {
+                      toast.success('Dev login successful');
+                    router.push('/admin');
+                  } else {
+                    toast.error(j.message || 'Dev login failed');
+                  }
+                } catch (e: any) {
+                  toast.error(e?.message || 'Dev login error');
+                }
+              }}
+            >Dev login as admin</button>
+
+            <button
+              className="text-sm text-green-600"
+              onClick={async () => {
+                try {
+                  const r = await fetch('/api/dev/seed', { method: 'POST' });
+                  const j = await r.json().catch(() => ({}));
+                  if (r.ok) {
+                    toast.success('Seed completed');
+                  } else {
+                    toast.error(j.message || 'Seed failed');
+                  }
+                } catch (e: any) {
+                  toast.error(e?.message || 'Seed error');
+                }
+              }}
+            >Seed DB</button>
+          </div>
+        </div>
+      )}
       <p className="text-xs text-gray-500 mt-3">Use the seeded admin account. This flow is stubbed for MVP.</p>
     </div>
   );

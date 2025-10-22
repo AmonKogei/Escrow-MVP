@@ -1,7 +1,7 @@
-// src/app/api/withdrawals/route.ts
+// src/app/api/escrows/[id]/withdrawals/route.ts
 import { NextResponse } from 'next/server';
-import { AccountService } from '@/lib/services/AccountService';
-import { authenticateUser } from '@/lib/utils';
+import { AccountService } from '../../../../../lib/services/AccountService';
+import { authenticateUser } from '../../../../../lib/utils';
 import { UserRole } from '@prisma/client';
 
 export async function POST(request: Request) {

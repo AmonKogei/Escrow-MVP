@@ -3,11 +3,11 @@ import { EscrowService } from '../../../../../lib/services/EscrowService';
 import { authenticateUser } from '../../../../../lib/utils';
 import { UserRole } from '@prisma/client';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, context: any) {
     try {
         // ⚠️ CRITICAL Auth Check: Ensure user is an Admin
         const { id: adminId } = await authenticateUser(request, UserRole.ADMIN);
-        const escrowId = params.id;
+        const escrowId = context?.params?.id;
         const { resolution } = await request.json(); // "APPROVE" (to Seller) or "REJECT" (to Buyer)
 
         if (!['APPROVE', 'REJECT'].includes(resolution)) {

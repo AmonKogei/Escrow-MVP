@@ -1,17 +1,39 @@
 {
   "devDependencies": {
+    "@types/node": "20.4.2",
     "@types/react": "19.2.2",
+    "autoprefixer": "^10.4.14",
+    "cross-env": "7.0.3",
+    "postcss": "^8.4.24",
     "prisma": "^6.17.1",
+    "tailwindcss": "^3.4.7",
+    "ts-node": "10.9.1",
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "@prisma/client": "^6.17.1"
+    "@headlessui/react": "^2.2.9",
+    "@prisma/client": "^6.17.1",
+    "bcryptjs": "^2.4.3",
+    "daisyui": "^2.3.0",
+    "next": "13.4.10",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-hot-toast": "^2.6.0"
   },
   "name": "escrow-mvp",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "dev": "next dev",
+    "dev:sqlite": "cross-env DATABASE_URL=\"file:./dev.db\" next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "jest",
+    "test:sqlite": "cross-env DATABASE_URL=\"file:./dev.db\" jest",
+    "prisma:push": "prisma db push",
+    "prisma:generate": "prisma generate",
+    "seed": "ts-node --transpile-only prisma/seed.ts",
+    "prisma:push:sqlite": "cross-env DATABASE_URL=\"file:./dev.db\" prisma db push --schema=prisma/schema.prisma"
   },
   "keywords": [],
   "author": "",
