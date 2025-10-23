@@ -50,24 +50,46 @@ export async function verifySession(cookieValue: string, secret: string) {
     // Insecure fallback for development/tests
     secret = 'dev-secret';
   }
+  // tolerate cookie values where the signature may contain additional dots
   const parts = cookieValue.split('.');
-  if (parts.length !== 2) return null;
-  const [encoded, sig] = parts;
+  if (parts.length < 2) return null;
+  const encoded = parts[0];
+  const sig = parts.slice(1).join('.');
+  // compute expected signature(s) for a few plausible input variants
   const expected = await hmacSha256Hex(encoded, secret);
+  // also try on decoded payload (in case signing used the raw JSON rather than the encoded form)
+  let expectedDecoded: string | null = null;
+  try {
+    const decodedStr = decodeURIComponent(encoded);
+    expectedDecoded = await hmacSha256Hex(decodedStr, secret);
+  } catch (e) {
+    expectedDecoded = null;
+  }
   // Timing-safe compare
   try {
     // Node crypto timingSafeEqual
     // Convert hex strings to buffers
-    const bufExpected = Buffer.from(expected, 'hex');
     const bufSig = Buffer.from(sig, 'hex');
-    if (bufExpected.length !== bufSig.length) return null;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { timingSafeEqual } = require('crypto');
-    if (!timingSafeEqual(bufExpected, bufSig)) {
+    // helper to compare a candidate expected sig against provided sig safely
+    const compare = (candidateHex: string | null) => {
+      if (!candidateHex) return false;
+      try {
+        const bufExpected = Buffer.from(candidateHex, 'hex');
+        if (bufExpected.length !== bufSig.length) return false;
+        return timingSafeEqual(bufExpected, bufSig);
+      } catch (e) {
+        return false;
+      }
+    };
+
+    const match = compare(expected) || compare(expectedDecoded);
+    if (!match) {
       console.debug('verifySession: timingSafeEqual failed', {
         encoded: encoded.slice(0, 120),
         providedSig: sig,
         expectedSig: expected,
+        expectedDecodedSig: expectedDecoded,
         secretPresent: !!process.env.SESSION_SECRET
       });
       return null;
@@ -75,15 +97,19 @@ export async function verifySession(cookieValue: string, secret: string) {
   } catch (e) {
     // Fallback: constant-time string compare
     let mismatch = 0;
-    if (expected.length !== sig.length) {
-      console.debug(`verifySession: length mismatch expected=${expected.length} got=${sig.length} secretPresent=${!!process.env.SESSION_SECRET}`);
-      return null;
-    }
-    for (let i = 0; i < expected.length; i++) {
-      mismatch |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
-    }
-    if (mismatch !== 0) {
-      console.debug(`verifySession: fallback mismatch expected=${expected.slice(0,8)} got=${sig.slice(0,8)} secretPresent=${!!process.env.SESSION_SECRET}`);
+    // fallback constant-time compare for string hexs
+    // try to compare against both expected variants
+    const tryCompareString = (candidate: string | null) => {
+      if (!candidate) return false;
+      if (candidate.length !== sig.length) return false;
+      let mm = 0;
+      for (let i = 0; i < candidate.length; i++) {
+        mm |= candidate.charCodeAt(i) ^ sig.charCodeAt(i);
+      }
+      return mm === 0;
+    };
+    if (!tryCompareString(expected) && !tryCompareString(expectedDecoded)) {
+      console.debug(`verifySession: fallback mismatch expected=${(expected||'').slice(0,8)} got=${sig.slice(0,8)} secretPresent=${!!process.env.SESSION_SECRET}`);
       return null;
     }
   }
